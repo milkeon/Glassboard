@@ -21,19 +21,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private const double DockGap = 16;
 
     private readonly DispatcherTimer _inputTimer;
-    private readonly DispatcherTimer _focusTimer;
     private HwndSource? _source;
     private string? _lastClipboardSignature;
-    private bool _isFocusRunning;
-    private DateTime _focusStartedAt;
-    private TimeSpan _focusElapsed = TimeSpan.Zero;
+    private string _lastMemoText = "최근 메모 없음";
 
     public ObservableCollection<ClipboardEntry> Items { get; } = new();
-    public ObservableCollection<MemoEntry> Memos { get; } = new();
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string FocusElapsedText => FormatFocusText();
+    public string LastMemoText
+    {
+        get => _lastMemoText;
+        set
+        {
+            if (_lastMemoText == value)
+                return;
+
+            _lastMemoText = value;
+            OnPropertyChanged();
+        }
+    }
 
     public MainWindow()
     {
@@ -46,12 +53,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Interval = TimeSpan.FromMilliseconds(40)
         };
         _inputTimer.Tick += InputTimer_Tick;
-
-        _focusTimer = new DispatcherTimer(DispatcherPriority.Background)
-        {
-            Interval = TimeSpan.FromSeconds(1)
-        };
-        _focusTimer.Tick += FocusTimer_Tick;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -78,19 +79,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     private void InputTimer_Tick(object? sender, EventArgs e)
-    {
-        UpdateOpacityFromCtrlState();
-    }
-
-    private void FocusTimer_Tick(object? sender, EventArgs e)
-    {
-        if (!_isFocusRunning)
-            return;
-
-        NotifyFocusText();
-    }
-
-    private void UpdateOpacityFromCtrlState()
     {
         var target = IsCtrlDown() ? CtrlOpacity : NormalOpacity;
         if (Math.Abs(Opacity - target) > 0.01)
@@ -146,7 +134,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         _lastClipboardSignature = entry.Signature;
         Items.Insert(0, entry);
-        if (Items.Count > 50)
+        if (Items.Count > 40)
             Items.RemoveAt(Items.Count - 1);
 
         HistoryList.SelectedItem = entry;
@@ -163,55 +151,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        Memos.Insert(0, new MemoEntry(text));
-        if (Memos.Count > 6)
-            Memos.RemoveAt(Memos.Count - 1);
-
+        LastMemoText = $"최근 메모: {text}";
         MemoInput.Clear();
-        StatusText.Text = $"메모를 저장했습니다 · {Memos.Count}개";
-    }
-
-    private void ToggleFocusTimer_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isFocusRunning)
-        {
-            _focusElapsed += DateTime.Now - _focusStartedAt;
-            _isFocusRunning = false;
-            _focusTimer.Stop();
-            NotifyFocusText();
-            StatusText.Text = "집중 타이머를 일시정지했습니다.";
-            return;
-        }
-
-        _focusStartedAt = DateTime.Now;
-        _isFocusRunning = true;
-        _focusTimer.Start();
-        NotifyFocusText();
-        StatusText.Text = "집중 타이머를 시작했습니다.";
-    }
-
-    private void ResetFocusTimer_Click(object sender, RoutedEventArgs e)
-    {
-        _focusElapsed = TimeSpan.Zero;
-        _focusStartedAt = DateTime.Now;
-        _isFocusRunning = false;
-        _focusTimer.Stop();
-        NotifyFocusText();
-        StatusText.Text = "집중 타이머를 초기화했습니다.";
-    }
-
-    private void NotifyFocusText()
-    {
-        OnPropertyChanged(nameof(FocusElapsedText));
-    }
-
-    private string FormatFocusText()
-    {
-        var elapsed = _focusElapsed;
-        if (_isFocusRunning)
-            elapsed += DateTime.Now - _focusStartedAt;
-
-        return $"{(int)elapsed.TotalMinutes:00}:{elapsed.Seconds:00}";
+        StatusText.Text = "메모를 저장했습니다.";
     }
 
     private void HistoryList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -242,9 +184,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private static void ApplyClipboard(ClipboardEntry entry)
     {
-        if (entry.Kind == ClipboardEntryKind.Image && entry.ImageSource is BitmapSource bitmapSource)
+        if (entry.Kind == ClipboardEntryKind.Image)
         {
-            Clipboard.SetImage(bitmapSource);
+            if (entry.ImageSource is BitmapSource bitmapSource)
+                Clipboard.SetImage(bitmapSource);
             return;
         }
 
@@ -253,11 +196,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        StatusText.Text = "클립보드와 메모를 기다리는 중입니다.";
+        StatusText.Text = "클립보드와 짧은 메모를 기다리는 중입니다.";
         DockToRightEdge();
         UpdateOpacityFromCtrlState();
         RefreshClipboard();
-        NotifyFocusText();
     }
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -269,15 +211,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void Window_Closed(object? sender, EventArgs e)
     {
         _inputTimer.Stop();
-        _focusTimer.Stop();
 
         if (_source is not null)
-        {
             _source.RemoveHook(WndProc);
-        }
 
         var handle = new WindowInteropHelper(this).Handle;
         RemoveClipboardFormatListener(handle);
+    }
+
+    private void UpdateOpacityFromCtrlState()
+    {
+        var target = IsCtrlDown() ? CtrlOpacity : NormalOpacity;
+        if (Math.Abs(Opacity - target) > 0.01)
+            Opacity = target;
     }
 
     private void DockToRightEdge()
@@ -386,16 +332,4 @@ public sealed class ClipboardEntry
                 : $"image:{source.Width:0}x{source.Height:0}"
         };
     }
-}
-
-public sealed class MemoEntry
-{
-    public MemoEntry(string text)
-    {
-        Text = text;
-        TimestampText = DateTime.Now.ToString("yyyy-MM-dd tt hh:mm");
-    }
-
-    public string Text { get; }
-    public string TimestampText { get; }
 }
