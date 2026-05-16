@@ -9,7 +9,7 @@
         Height="700"
         MinWidth="360"
         MinHeight="520"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="Manual"
         WindowStyle="None"
         ResizeMode="CanResize"
         AllowsTransparency="True"
@@ -17,7 +17,8 @@
         Topmost="True"
         ShowInTaskbar="True"
         Loaded="Window_Loaded"
-        Closed="Window_Closed">
+        Closed="Window_Closed"
+        SizeChanged="Window_SizeChanged">
     <Border CornerRadius="22"
             Background="{StaticResource PanelBrush}"
             BorderBrush="{StaticResource CardBorderBrush}"

@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,14 +6,22 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace Glassboard;
 
 public partial class MainWindow : Window
 {
     private const int WmClipboardUpdate = 0x031D;
+    private const int VkControl = 0x11;
+    private const double NormalOpacity = 0.72;
+    private const double CtrlOpacity = 0.98;
+    private const double DockGap = 16;
+
+    private readonly DispatcherTimer _inputTimer;
     private HwndSource? _source;
     private string? _lastClipboardSignature;
+
     public ObservableCollection<ClipboardEntry> Items { get; } = new();
 
     public MainWindow()
@@ -23,15 +29,24 @@ public partial class MainWindow : Window
         InitializeComponent();
         HistoryList.ItemsSource = Items;
         DataContext = this;
+
+        _inputTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(40)
+        };
+        _inputTimer.Tick += InputTimer_Tick;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+
         var handle = new WindowInteropHelper(this).Handle;
         _source = HwndSource.FromHwnd(handle);
         _source?.AddHook(WndProc);
         AddClipboardFormatListener(handle);
+
+        _inputTimer.Start();
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -41,8 +56,23 @@ public partial class MainWindow : Window
             RefreshClipboard();
             handled = true;
         }
+
         return IntPtr.Zero;
     }
+
+    private void InputTimer_Tick(object? sender, EventArgs e)
+    {
+        UpdateOpacityFromCtrlState();
+    }
+
+    private void UpdateOpacityFromCtrlState()
+    {
+        var target = IsCtrlDown() ? CtrlOpacity : NormalOpacity;
+        if (Math.Abs(Opacity - target) > 0.01)
+            Opacity = target;
+    }
+
+    private static bool IsCtrlDown() => (GetAsyncKeyState(VkControl) & 0x8000) != 0;
 
     private void RefreshClipboard()
     {
@@ -55,8 +85,12 @@ public partial class MainWindow : Window
                 {
                     var entry = ClipboardEntry.FromImage(source);
                     if (TryAddEntry(entry))
+                    {
                         StatusText.Text = $"새 이미지 항목을 저장했습니다 · {Items.Count}개";
+                        BringOverlayToFront();
+                    }
                 }
+
                 return;
             }
 
@@ -67,13 +101,16 @@ public partial class MainWindow : Window
                 {
                     var entry = ClipboardEntry.FromText(text.Trim());
                     if (TryAddEntry(entry))
+                    {
                         StatusText.Text = $"새 텍스트 항목을 저장했습니다 · {Items.Count}개";
+                        BringOverlayToFront();
+                    }
                 }
             }
         }
         catch (ExternalException)
         {
-            // 클립보드 사용 중일 수 있으니 조용히 건너뜁니다.
+            // 클립보드가 잠겨 있으면 조용히 넘깁니다.
         }
     }
 
@@ -132,11 +169,21 @@ public partial class MainWindow : Window
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         StatusText.Text = "클립보드를 기다리는 중입니다.";
+        DockToRightEdge();
+        UpdateOpacityFromCtrlState();
         RefreshClipboard();
+    }
+
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (WindowState == WindowState.Normal)
+            DockToRightEdge();
     }
 
     private void Window_Closed(object? sender, EventArgs e)
     {
+        _inputTimer.Stop();
+
         if (_source is not null)
         {
             _source.RemoveHook(WndProc);
@@ -144,6 +191,36 @@ public partial class MainWindow : Window
 
         var handle = new WindowInteropHelper(this).Handle;
         RemoveClipboardFormatListener(handle);
+    }
+
+    private void DockToRightEdge()
+    {
+        var workArea = SystemParameters.WorkArea;
+        var left = workArea.Right - ActualWidth - DockGap;
+        var top = workArea.Top + DockGap;
+
+        if (left < workArea.Left + DockGap)
+            left = workArea.Left + DockGap;
+
+        if (top < workArea.Top + DockGap)
+            top = workArea.Top + DockGap;
+
+        Left = left;
+        Top = top;
+    }
+
+    private void BringOverlayToFront()
+    {
+        if (!IsVisible)
+            Show();
+
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Normal;
+
+        Activate();
+        Topmost = true;
+        Focus();
+        DockToRightEdge();
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -164,6 +241,9 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
 }
 
 public enum ClipboardEntryKind
