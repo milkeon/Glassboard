@@ -5,12 +5,14 @@
     <Application.Resources>
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
-            <SolidColorBrush x:Key="PanelBrush" Color="#CC111827" />
-            <SolidColorBrush x:Key="CardBrush" Color="#CC1F2937" />
+            <SolidColorBrush x:Key="PanelBrush" Color="#D3111726" />
+            <SolidColorBrush x:Key="CardBrush" Color="#CC202A3D" />
             <SolidColorBrush x:Key="CardBorderBrush" Color="#66FFFFFF" />
-            <SolidColorBrush x:Key="AccentBrush" Color="#FF7DD3FC" />
+            <SolidColorBrush x:Key="AccentBrush" Color="#FF8AD7FF" />
+            <SolidColorBrush x:Key="AccentSoftBrush" Color="#337DD3FC" />
             <SolidColorBrush x:Key="TextBrush" Color="#FFF8FAFC" />
-            <SolidColorBrush x:Key="MutedBrush" Color="#FFD1D5DB" />
+            <SolidColorBrush x:Key="MutedBrush" Color="#FFC7CED9" />
+            <SolidColorBrush x:Key="InputBrush" Color="#1F000000" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,7 +12,7 @@ using System.Windows.Threading;
 
 namespace Glassboard;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, INotifyPropertyChanged
 {
     private const int WmClipboardUpdate = 0x031D;
     private const int VkControl = 0x11;
@@ -19,10 +21,19 @@ public partial class MainWindow : Window
     private const double DockGap = 16;
 
     private readonly DispatcherTimer _inputTimer;
+    private readonly DispatcherTimer _focusTimer;
     private HwndSource? _source;
     private string? _lastClipboardSignature;
+    private bool _isFocusRunning;
+    private DateTime _focusStartedAt;
+    private TimeSpan _focusElapsed = TimeSpan.Zero;
 
     public ObservableCollection<ClipboardEntry> Items { get; } = new();
+    public ObservableCollection<MemoEntry> Memos { get; } = new();
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public string FocusElapsedText => FormatFocusText();
 
     public MainWindow()
     {
@@ -35,6 +46,12 @@ public partial class MainWindow : Window
             Interval = TimeSpan.FromMilliseconds(40)
         };
         _inputTimer.Tick += InputTimer_Tick;
+
+        _focusTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _focusTimer.Tick += FocusTimer_Tick;
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -63,6 +80,14 @@ public partial class MainWindow : Window
     private void InputTimer_Tick(object? sender, EventArgs e)
     {
         UpdateOpacityFromCtrlState();
+    }
+
+    private void FocusTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!_isFocusRunning)
+            return;
+
+        NotifyFocusText();
     }
 
     private void UpdateOpacityFromCtrlState()
@@ -129,6 +154,66 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private void SaveMemo_Click(object sender, RoutedEventArgs e)
+    {
+        var text = MemoInput.Text.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            StatusText.Text = "메모할 내용이 비어 있습니다.";
+            return;
+        }
+
+        Memos.Insert(0, new MemoEntry(text));
+        if (Memos.Count > 6)
+            Memos.RemoveAt(Memos.Count - 1);
+
+        MemoInput.Clear();
+        StatusText.Text = $"메모를 저장했습니다 · {Memos.Count}개";
+    }
+
+    private void ToggleFocusTimer_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isFocusRunning)
+        {
+            _focusElapsed += DateTime.Now - _focusStartedAt;
+            _isFocusRunning = false;
+            _focusTimer.Stop();
+            NotifyFocusText();
+            StatusText.Text = "집중 타이머를 일시정지했습니다.";
+            return;
+        }
+
+        _focusStartedAt = DateTime.Now;
+        _isFocusRunning = true;
+        _focusTimer.Start();
+        NotifyFocusText();
+        StatusText.Text = "집중 타이머를 시작했습니다.";
+    }
+
+    private void ResetFocusTimer_Click(object sender, RoutedEventArgs e)
+    {
+        _focusElapsed = TimeSpan.Zero;
+        _focusStartedAt = DateTime.Now;
+        _isFocusRunning = false;
+        _focusTimer.Stop();
+        NotifyFocusText();
+        StatusText.Text = "집중 타이머를 초기화했습니다.";
+    }
+
+    private void NotifyFocusText()
+    {
+        OnPropertyChanged(nameof(FocusElapsedText));
+    }
+
+    private string FormatFocusText()
+    {
+        var elapsed = _focusElapsed;
+        if (_isFocusRunning)
+            elapsed += DateTime.Now - _focusStartedAt;
+
+        return $"{(int)elapsed.TotalMinutes:00}:{elapsed.Seconds:00}";
+    }
+
     private void HistoryList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (HistoryList.SelectedItem is not ClipboardEntry entry)
@@ -168,10 +253,11 @@ public partial class MainWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        StatusText.Text = "클립보드를 기다리는 중입니다.";
+        StatusText.Text = "클립보드와 메모를 기다리는 중입니다.";
         DockToRightEdge();
         UpdateOpacityFromCtrlState();
         RefreshClipboard();
+        NotifyFocusText();
     }
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -183,6 +269,7 @@ public partial class MainWindow : Window
     private void Window_Closed(object? sender, EventArgs e)
     {
         _inputTimer.Stop();
+        _focusTimer.Stop();
 
         if (_source is not null)
         {
@@ -235,6 +322,9 @@ public partial class MainWindow : Window
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool AddClipboardFormatListener(IntPtr hwnd);
@@ -296,4 +386,16 @@ public sealed class ClipboardEntry
                 : $"image:{source.Width:0}x{source.Height:0}"
         };
     }
+}
+
+public sealed class MemoEntry
+{
+    public MemoEntry(string text)
+    {
+        Text = text;
+        TimestampText = DateTime.Now.ToString("yyyy-MM-dd tt hh:mm");
+    }
+
+    public string Text { get; }
+    public string TimestampText { get; }
 }
