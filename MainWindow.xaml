@@ -3,37 +3,153 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
+        Icon="pack://application:,,,/Assets/GlassboardIcon.ico"
         Title="Glassboard"
-        Width="460"
-        Height="650"
-        MinWidth="380"
-        MinHeight="540"
+        Width="640"
+        Height="620"
+        MinWidth="520"
+        MinHeight="420"
         WindowStartupLocation="Manual"
         WindowStyle="None"
         ResizeMode="CanResize"
         AllowsTransparency="True"
         Background="Transparent"
+        shell:WindowChrome.WindowChrome="{StaticResource GlassChrome}"
         Topmost="True"
         ShowInTaskbar="True"
         Loaded="Window_Loaded"
         Closed="Window_Closed"
-        SizeChanged="Window_SizeChanged">
+        SizeChanged="Window_SizeChanged"
+        PreviewMouseDown="Window_PreviewMouseDown"
+        PreviewMouseWheel="Window_PreviewMouseWheel">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <Style x:Key="GlassboardListItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Background="Transparent">
+                            <ContentPresenter />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Panel.ZIndex" Value="10" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="InvisibleResizeThumbStyle" TargetType="Thumb">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GlassOpacitySliderStyle" TargetType="Slider">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#FF6F86A6" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Width" Value="124" />
+            <Setter Property="Margin" Value="0,0,0,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="IsMoveToPointEnabled" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid SnapsToDevicePixels="True">
+                            <Border Height="14"
+                                    VerticalAlignment="Center"
+                                    CornerRadius="7"
+                                    Background="#1C2736"
+                                    BorderBrush="#32455E"
+                                    BorderThickness="1" />
+
+                            <Track x:Name="PART_Track"
+                                   Margin="0">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton IsTabStop="False"
+                                                  Focusable="False"
+                                                  Background="#5F789A"
+                                                  BorderBrush="Transparent"
+                                                  BorderThickness="0">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        CornerRadius="7"
+                                                        ClipToBounds="True" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton IsTabStop="False"
+                                                  Focusable="False"
+                                                  Background="Transparent"
+                                                  BorderBrush="Transparent"
+                                                  BorderThickness="0">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Background="Transparent" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="1"
+                                           Height="1"
+                                           Opacity="0"
+                                           Background="Transparent"
+                                           BorderThickness="0"
+                                           IsTabStop="False"
+                                           Focusable="False" />
+                                </Track.Thumb>
+                            </Track>
+
+                            <Border Background="Transparent"
+                                    Cursor="Hand"
+                                    MouseLeftButtonDown="OpacityGauge_MouseLeftButtonDown"
+                                    MouseMove="OpacityGauge_MouseMove"
+                                    MouseLeftButtonUp="OpacityGauge_MouseLeftButtonUp" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Border CornerRadius="22"
             Background="{StaticResource PanelBrush}"
-            BorderBrush="{StaticResource CardBorderBrush}"
-            BorderThickness="1"
+            BorderThickness="0"
             SnapsToDevicePixels="True">
-        <Grid Margin="16">
+        <Grid IsHitTestVisible="{Binding IsInteractive}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Margin="0,0,0,12" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid Grid.Row="0"
+                  Margin="16,16,16,14"
+                  Background="Transparent"
+                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -43,168 +159,160 @@
                                FontSize="24"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource TextBrush}" />
-                    <TextBlock Text="작업 중에 잠깐 꺼내 쓰는 가벼운 보조판"
-                               Margin="0,4,0,0"
-                               FontSize="12"
-                               Foreground="{StaticResource MutedBrush}" />
                 </StackPanel>
-                <Button Grid.Column="1"
-                        Content="닫기"
-                        Padding="14,8"
-                        Margin="12,0,0,0"
-                        Background="#33FFFFFF"
-                        Foreground="{StaticResource TextBrush}"
-                        BorderBrush="#40FFFFFF"
-                        Click="CloseButton_Click"
-                        IsTabStop="False" />
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <StackPanel Width="188"
+                                Margin="0,0,12,0"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBlock Width="38"
+                                   Margin="0,0,8,0"
+                                   Text="{Binding OverlayOpacity, StringFormat={}{0:0%}}"
+                                   Foreground="#8FC3FF"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   TextAlignment="Right"
+                                   VerticalAlignment="Center" />
+                        <Slider Minimum="0.35"
+                                Maximum="1"
+                                Value="{Binding OverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Foreground="{StaticResource AccentBrush}"
+                                IsTabStop="False"
+                                Height="18"
+                                TickFrequency="0.05"
+                                IsSnapToTickEnabled="False"
+                                Style="{StaticResource GlassOpacitySliderStyle}" />
+                    </StackPanel>
+                    <Button Content="닫기"
+                            Padding="14,8"
+                            Background="Transparent"
+                            Foreground="{StaticResource TextBrush}"
+                            BorderBrush="#40FFFFFF"
+                            BorderThickness="1"
+                            Click="CloseButton_Click"
+                            IsTabStop="False">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Root"
+                                        Background="Transparent"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="14"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Root" Property="BorderBrush" Value="#8FD7FF" />
+                                        <Setter TargetName="Root" Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#8FD7FF" BlurRadius="22" ShadowDepth="0" Opacity="0.95" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Root" Property="BorderBrush" Value="#B4E8FF" />
+                                        <Setter TargetName="Root" Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect Color="#B4E8FF" BlurRadius="26" ShadowDepth="0" Opacity="1" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <Border Grid.Row="1"
+                    Margin="16,0,16,14"
                     Padding="12"
-                    Margin="0,0,0,12"
-                    Background="{StaticResource CardBrush}"
-                    BorderBrush="#33FFFFFF"
-                    BorderThickness="1"
-                    CornerRadius="14">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse Width="10" Height="10" Fill="#FF34D399" Margin="0,0,10,0" VerticalAlignment="Center" />
-                    <TextBlock x:Name="StatusText"
-                               Foreground="{StaticResource TextBrush}"
-                               FontSize="13"
-                               VerticalAlignment="Center"
-                               Text="대기 중" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Row="2"
-                    Padding="14"
-                    Margin="0,0,0,12"
                     Background="{StaticResource CardBrush}"
                     BorderBrush="{StaticResource CardBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="18">
                 <StackPanel>
-                    <TextBlock Text="짧은 메모"
+                    <TextBlock Text="최신 스샷 5개"
                                Foreground="{StaticResource AccentBrush}"
                                FontSize="12"
-                               FontWeight="SemiBold" />
-                    <TextBox x:Name="MemoInput"
-                             Margin="0,10,0,8"
-                             MinHeight="44"
-                             TextWrapping="Wrap"
-                             AcceptsReturn="False"
-                             VerticalScrollBarVisibility="Disabled"
-                             Background="{StaticResource InputBrush}"
-                             Foreground="{StaticResource TextBrush}"
-                             BorderBrush="#44FFFFFF"
-                             BorderThickness="1"
-                             Padding="10"
-                             FontSize="13" />
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="메모 저장"
-                                Padding="14,8"
-                                Background="#2A8AD7FF"
-                                Foreground="{StaticResource TextBrush}"
-                                BorderBrush="#55FFFFFF"
-                                Click="SaveMemo_Click"
-                                IsTabStop="False" />
-                        <TextBlock Text="한 줄만, 빨리 적기"
-                                   Margin="10,0,0,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="{StaticResource MutedBrush}"
-                                   FontSize="11" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding LastMemoText}"
-                               Margin="0,12,0,0"
-                               Foreground="{StaticResource MutedBrush}"
-                               FontSize="11"
-                               TextTrimming="CharacterEllipsis"
-                               TextWrapping="NoWrap" />
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Row="3"
-                    Padding="0"
-                    Background="Transparent"
-                    BorderThickness="0">
-                <StackPanel>
-                    <TextBlock Text="최근 클립"
-                               Margin="2,0,0,8"
-                               Foreground="{StaticResource AccentBrush}"
-                               FontSize="12"
-                               FontWeight="SemiBold" />
-                    <ListBox x:Name="HistoryList"
+                               FontWeight="SemiBold"
+                               Margin="2,0,0,10" />
+                    <ListBox x:Name="ImagesList"
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
                              SelectionMode="Single"
-                             MouseLeftButtonUp="HistoryList_MouseLeftButtonUp"
+                             ItemContainerStyle="{StaticResource GlassboardListItemStyle}"
                              KeyDown="HistoryList_KeyDown">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="Margin" Value="0,0,0,10" />
-                                <Setter Property="Padding" Value="0" />
-                                <Setter Property="Background" Value="Transparent" />
-                                <Setter Property="BorderThickness" Value="0" />
-                                <Setter Property="Focusable" Value="True" />
-                            </Style>
-                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="18"
+                                <Border Width="104"
+                                        Margin="0,0,8,0"
+                                        Padding="9"
+                                        CornerRadius="16"
                                         Background="{StaticResource CardBrush}"
                                         BorderBrush="{StaticResource CardBorderBrush}"
                                         BorderThickness="1"
-                                        Padding="14">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <Border Width="76"
-                                                Height="76"
-                                                CornerRadius="14"
+                                        MouseLeftButtonUp="Item_MouseLeftButtonUp">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Opacity" Value="0.96" />
+                                            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+                                            <Setter Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1" ScaleY="1" />
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Setter Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#000000" BlurRadius="0" ShadowDepth="0" Opacity="0" />
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                    <Setter Property="Background" Value="#30FFFFFF" />
+                                                    <Setter Property="Opacity" Value="1" />
+                                                    <Setter Property="Effect">
+                                                        <Setter.Value>
+                                                            <DropShadowEffect Color="#8AD7FF" BlurRadius="34" ShadowDepth="0" Opacity="0.95" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <Border Height="72"
+                                                CornerRadius="12"
                                                 Background="#1AFFFFFF"
                                                 BorderBrush="#22FFFFFF"
                                                 BorderThickness="1"
-                                                VerticalAlignment="Top">
-                                            <Grid>
-                                                <Image Source="{Binding Image}"
-                                                       Stretch="UniformToFill"
-                                                       Visibility="{Binding IsImage, Converter={StaticResource BoolToVis}}" />
-                                                <TextBlock Text="TXT"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"
-                                                           FontSize="18"
-                                                           FontWeight="Bold"
-                                                           Foreground="{StaticResource AccentBrush}"
-                                                           Visibility="{Binding IsText, Converter={StaticResource BoolToVis}}" />
-                                            </Grid>
+                                                ClipToBounds="True">
+                                            <Image Source="{Binding Image}"
+                                                   Stretch="UniformToFill" />
                                         </Border>
-
-                                        <StackPanel Grid.Column="1" Margin="14,0,0,0">
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                                <TextBlock Text="{Binding KindLabel}"
-                                                           Foreground="{StaticResource AccentBrush}"
-                                                           FontSize="12"
-                                                           FontWeight="SemiBold" />
-                                                <TextBlock Text="  ·  Ctrl+클릭으로 고정"
-                                                           Foreground="#FF9CA3AF"
-                                                           FontSize="12" />
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding Preview}"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="14"
-                                                       TextWrapping="Wrap"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding TimestampText}"
-                                                       Margin="0,8,0,0"
-                                                       Foreground="#FF9CA3AF"
-                                                       FontSize="11" />
-                                        </StackPanel>
-                                    </Grid>
+                                        <TextBlock Text="{Binding Preview}"
+                                                   Margin="0,8,0,0"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="11"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   TextWrapping="NoWrap" />
+                                        <TextBlock Text="{Binding TimestampText}"
+                                                   Margin="0,4,0,0"
+                                                   Foreground="#FF9CA3AF"
+                                                   FontSize="10" />
+                                    </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -212,11 +320,227 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Grid.Row="4"
-                       Margin="2,12,2,0"
-                       Foreground="#FF9CA3AF"
-                       FontSize="11"
-                       Text="팁: 일반 클릭은 미리보기 선택, Ctrl+클릭은 선택한 항목을 클립보드로 다시 복사합니다." />
+            <Border Grid.Row="2"
+                    Margin="16,0,16,14"
+                    Padding="12"
+                    Background="{StaticResource CardBrush}"
+                    BorderBrush="{StaticResource CardBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="18">
+                <StackPanel>
+                    <TextBlock Text="최신 텍스트 5개"
+                               Foreground="{StaticResource AccentBrush}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Margin="2,0,0,10" />
+                    <ListBox x:Name="TextsList"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                             SelectionMode="Single"
+                             ItemContainerStyle="{StaticResource GlassboardListItemStyle}"
+                             KeyDown="HistoryList_KeyDown">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,0,0,8"
+                                        Padding="12"
+                                        CornerRadius="16"
+                                        Background="{StaticResource CardBrush}"
+                                        BorderBrush="{StaticResource CardBorderBrush}"
+                                        BorderThickness="1"
+                                        MouseLeftButtonUp="Item_MouseLeftButtonUp">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Opacity" Value="0.96" />
+                                            <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+                                            <Setter Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="1" ScaleY="1" />
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Setter Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#000000" BlurRadius="0" ShadowDepth="0" Opacity="0" />
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                    <Setter Property="Background" Value="#30FFFFFF" />
+                                                    <Setter Property="Opacity" Value="1" />
+                                                    <Setter Property="Effect">
+                                                        <Setter.Value>
+                                                            <DropShadowEffect Color="#8AD7FF" BlurRadius="30" ShadowDepth="0" Opacity="0.95" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <TextBlock Text="텍스트"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Preview}"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="13"
+                                                   TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding TimestampText}"
+                                                   Margin="0,6,0,0"
+                                                   Foreground="#FF9CA3AF"
+                                                   FontSize="10" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.RowSpan="4"
+                  Panel.ZIndex="40">
+                <Thumb HorizontalAlignment="Left"
+                       VerticalAlignment="Stretch"
+                       Width="18"
+                       Margin="-16,0,0,0"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeWE"
+                       Tag="Left"
+                       DragDelta="ResizeThumb_DragDelta" />
+                <Thumb HorizontalAlignment="Right"
+                       VerticalAlignment="Stretch"
+                       Width="18"
+                       Margin="0,0,-16,0"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeWE"
+                       Tag="Right"
+                       DragDelta="ResizeThumb_DragDelta" />
+                <Thumb HorizontalAlignment="Stretch"
+                       VerticalAlignment="Top"
+                       Height="18"
+                       Margin="0,-16,0,0"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeNS"
+                       Tag="Top"
+                       DragDelta="ResizeThumb_DragDelta" />
+                <Thumb HorizontalAlignment="Stretch"
+                       VerticalAlignment="Bottom"
+                       Height="18"
+                       Margin="0,0,0,-16"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeNS"
+                       Tag="Bottom"
+                       DragDelta="ResizeThumb_DragDelta" />
+                <Thumb HorizontalAlignment="Left"
+                       VerticalAlignment="Top"
+                       Width="18"
+                       Height="18"
+                       Margin="-16,-16,0,0"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeNWSE"
+                       Tag="TopLeft"
+                       DragDelta="ResizeThumb_DragDelta" />
+                <Thumb HorizontalAlignment="Right"
+                       VerticalAlignment="Top"
+                       Width="18"
+                       Height="18"
+                       Margin="0,-16,-16,0"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeNESW"
+                       Tag="TopRight"
+                       DragDelta="ResizeThumb_DragDelta" />
+                <Thumb HorizontalAlignment="Left"
+                       VerticalAlignment="Bottom"
+                       Width="18"
+                       Height="18"
+                       Margin="-16,0,0,-16"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeNESW"
+                       Tag="BottomLeft"
+                       DragDelta="ResizeThumb_DragDelta" />
+                <Thumb HorizontalAlignment="Right"
+                       VerticalAlignment="Bottom"
+                       Width="18"
+                       Height="18"
+                       Margin="0,0,-16,-16"
+                       Style="{StaticResource InvisibleResizeThumbStyle}"
+                       Background="Transparent"
+                       Cursor="SizeNWSE"
+                       Tag="BottomRight"
+                       DragDelta="ResizeThumb_DragDelta" />
+            </Grid>
+
+            <Grid Grid.RowSpan="4"
+                  Panel.ZIndex="50"
+                  Visibility="{Binding IsSelectionExpanded, Converter={StaticResource BoolToVis}}"
+                  Background="#C0000000"
+                  MouseLeftButtonUp="ExpandedOverlay_MouseLeftButtonUp">
+                <Border Margin="10"
+                        CornerRadius="22"
+                        Background="{StaticResource PanelBrush}"
+                        BorderBrush="{StaticResource AccentBrush}"
+                        BorderThickness="1"
+                        SnapsToDevicePixels="True">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#8AD7FF" BlurRadius="44" ShadowDepth="0" Opacity="0.75" />
+                    </Border.Effect>
+                    <Grid Margin="18">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedEntry.KindLabel}"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding SelectedEntry.TimestampText}"
+                                       Margin="0,4,0,0"
+                                       Foreground="#FF9CA3AF"
+                                       FontSize="11" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="1" Margin="0,16,0,16">
+                            <Border Visibility="{Binding SelectedEntry.IsImage, Converter={StaticResource BoolToVis}}"
+                                    Background="#0CFFFFFF"
+                                    BorderBrush="#20FFFFFF"
+                                    BorderThickness="1"
+                                    CornerRadius="18"
+                                    Padding="12">
+                                <Image Source="{Binding SelectedEntry.Image}"
+                                       Stretch="Uniform"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                            </Border>
+
+                            <ScrollViewer Visibility="{Binding SelectedEntry.IsText, Converter={StaticResource BoolToVis}}"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <TextBlock Text="{Binding SelectedEntry.FullText}"
+                                           Foreground="{StaticResource TextBrush}"
+                                           FontSize="22"
+                                           TextWrapping="Wrap"
+                                           LineStackingStrategy="BlockLineHeight"
+                                           LineHeight="30" />
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Border>
 </Window>
