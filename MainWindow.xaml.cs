@@ -34,7 +34,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private const double ResizeEdgeSize = 16;
     private const int GwlExStyle = -20;
     private const long WsExTransparent = 0x00000020L;
-    private const uint WdaExcludeFromCapture = 0x11;
     private const int SwpNoMove = 0x0002;
     private const int SwpNoSize = 0x0001;
     private const int SwpNoZOrder = 0x0004;
@@ -120,7 +119,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _source = HwndSource.FromHwnd(handle);
         _source?.AddHook(WndProc);
         AddClipboardFormatListener(handle);
-        SetWindowDisplayAffinity(handle, WdaExcludeFromCapture);
 
         _inputTimer.Start();
         UpdateClickThroughState();
@@ -601,9 +599,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, int uFlags);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
 }
 
 public enum ClipboardEntryKind
