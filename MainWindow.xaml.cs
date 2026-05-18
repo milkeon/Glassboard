@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -38,6 +39,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private const int SwpNoSize = 0x0001;
     private const int SwpNoZOrder = 0x0004;
     private const int SwpFrameChanged = 0x0020;
+    private const int WdaNone = 0;
+    private const int WdaMonitor = 1;
+    private const int WdaExcludeFromCapture = 0x11;
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, int dwAffinity);
 
     private readonly DispatcherTimer _inputTimer;
     private HwndSource? _source;
@@ -119,6 +127,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _source = HwndSource.FromHwnd(handle);
         _source?.AddHook(WndProc);
         AddClipboardFormatListener(handle);
+        ApplyCaptureExclusion(handle);
 
         _inputTimer.Start();
         UpdateClickThroughState();
@@ -453,6 +462,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var width = Math.Max(1, element.ActualWidth);
         var ratio = Math.Clamp(x / width, 0.0, 1.0);
         OverlayOpacity = 0.35 + (ratio * 0.65);
+    }
+
+    private void ApplyCaptureExclusion(IntPtr handle)
+    {
+        try
+        {
+            var success = SetWindowDisplayAffinity(handle, WdaExcludeFromCapture);
+            LogStartup($"SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)={(success ? "ok" : "failed")}");
+
+            if (!success)
+            {
+                var fallback = SetWindowDisplayAffinity(handle, WdaMonitor);
+                LogStartup($"SetWindowDisplayAffinity(WDA_MONITOR)={(fallback ? "ok" : "failed")}");
+            }
+        }
+        catch (Exception exception)
+        {
+            LogStartup($"SetWindowDisplayAffinity(exception)={exception.GetType().Name}: {exception.Message}");
+        }
+    }
+
+    private static void LogStartup(string message)
+    {
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Glassboard");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "startup.log");
+            File.AppendAllText(path, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n");
+        }
+        catch
+        {
+        }
     }
 
     private void UpdateClickThroughState()
