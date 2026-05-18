@@ -482,7 +482,8 @@
                        DragDelta="ResizeThumb_DragDelta" />
             </Grid>
 
-            <Grid Grid.RowSpan="4"
+            <Grid Grid.Row="1"
+                  Grid.RowSpan="3"
                   Panel.ZIndex="50"
                   Visibility="{Binding IsSelectionExpanded, Converter={StaticResource BoolToVis}}"
                   Background="#C0000000"
