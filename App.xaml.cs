@@ -9,20 +9,28 @@ public partial class App : Application
 {
     public App()
     {
+        LogStartup("App ctor");
         DispatcherUnhandledException += App_DispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
     }
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        LogStartup("OnStartup begin");
+
         try
         {
             base.OnStartup(e);
             ShutdownMode = ShutdownMode.OnMainWindowClose;
 
+            LogStartup("Before MainWindow ctor");
             var window = new MainWindow();
+            LogStartup("After MainWindow ctor");
+
             MainWindow = window;
+            LogStartup("Before window.Show");
             window.Show();
+            LogStartup("After window.Show");
         }
         catch (Exception exception)
         {
@@ -43,6 +51,20 @@ public partial class App : Application
     {
         if (e.ExceptionObject is Exception exception)
             LogCrash(exception);
+    }
+
+    private static void LogStartup(string message)
+    {
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Glassboard");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "startup.log");
+            File.AppendAllText(path, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n");
+        }
+        catch
+        {
+        }
     }
 
     private static void LogCrash(Exception exception)

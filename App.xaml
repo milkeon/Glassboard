@@ -1,16 +1,9 @@
 <Application x:Class="Glassboard.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
-            <shell:WindowChrome x:Key="GlassChrome"
-                                CaptionHeight="0"
-                                ResizeBorderThickness="0"
-                                CornerRadius="0"
-                                GlassFrameThickness="0"
-                                UseAeroCaptionButtons="False" />
             <SolidColorBrush x:Key="PanelBrush" Color="#D2121A24" />
             <SolidColorBrush x:Key="CardBrush" Color="#CC1B2533" />
             <SolidColorBrush x:Key="CardBorderBrush" Color="#1F33404E" />
