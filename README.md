@@ -55,7 +55,7 @@ Glassboard는 Windows 바탕화면 한쪽에 조용히 붙어 있는 오버레�
 
 ## 현재 버전
 
-- `v0.2.37`
+- `v0.2.38`
 - 새 아이콘을 적용한 Windows x64 self-contained 릴리스 기준입니다.
 
 ## 빌드

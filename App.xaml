@@ -1,9 +1,7 @@
 <Application x:Class="Glassboard.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-             Startup="App_Startup"
-             StartupUri="MainWindow.xaml">
+             xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework">
     <Application.Resources>
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVis" />

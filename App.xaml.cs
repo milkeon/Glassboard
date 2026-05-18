@@ -7,16 +7,35 @@ namespace Glassboard;
 
 public partial class App : Application
 {
-    private void App_Startup(object sender, StartupEventArgs e)
+    public App()
     {
         DispatcherUnhandledException += App_DispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
     }
 
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        try
+        {
+            base.OnStartup(e);
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+            var window = new MainWindow();
+            MainWindow = window;
+            window.Show();
+        }
+        catch (Exception exception)
+        {
+            LogCrash(exception);
+            MessageBox.Show($"Glassboard 시작 중 오류가 발생했습니다.\n\n{exception}", "Glassboard", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(-1);
+        }
+    }
+
     private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         LogCrash(e.Exception);
-        MessageBox.Show($"Glassboard 시작 중 오류가 발생했습니다.\n\n{e.Exception.Message}", "Glassboard", MessageBoxButton.OK, MessageBoxImage.Error);
+        MessageBox.Show($"Glassboard 시작 중 오류가 발생했습니다.\n\n{e.Exception}", "Glassboard", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 
