@@ -38,7 +38,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private const int SwpNoMove = 0x0002;
     private const int SwpNoSize = 0x0001;
     private const int SwpNoZOrder = 0x0004;
+    private const int SwpNoActivate = 0x0010;
     private const int SwpFrameChanged = 0x0020;
+    private static readonly IntPtr HwndTopmost = new(-1);
+    private static readonly IntPtr HwndNotopmost = new(-2);
     private const int WdaNone = 0;
     private const int WdaMonitor = 1;
     private const int WdaExcludeFromCapture = 0x11;
@@ -130,7 +133,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ApplyCaptureExclusion(handle);
 
         _inputTimer.Start();
-        UpdateClickThroughState();
+        UpdateClickThroughState(IsCtrlDown());
+        UpdateTopmostState(IsCtrlDown());
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -162,10 +166,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void InputTimer_Tick(object? sender, EventArgs e)
     {
+        var ctrlDown = IsCtrlDown();
         OnPropertyChanged(nameof(IsInteractive));
-        UpdateClickThroughState();
+        UpdateClickThroughState(ctrlDown);
+        UpdateTopmostState(ctrlDown);
 
-        var target = IsCtrlDown() ? CtrlOpacity : OverlayOpacity;
+        if (ctrlDown)
+        {
+            Activate();
+            Focus();
+        }
+
+        var target = ctrlDown ? CtrlOpacity : OverlayOpacity;
         if (Math.Abs(Opacity - target) > 0.01)
             Opacity = target;
     }
@@ -497,20 +509,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void UpdateClickThroughState()
+    private void UpdateClickThroughState(bool ctrlDown)
     {
         if (_source is null)
             return;
 
         var handle = new WindowInteropHelper(this).Handle;
         var style = GetWindowLongPtr(handle, GwlExStyle).ToInt64();
-        if (IsCtrlDown())
+        if (ctrlDown)
             style &= ~WsExTransparent;
         else
             style |= WsExTransparent;
 
         SetWindowLongPtr(handle, GwlExStyle, new IntPtr(style));
         SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoZOrder | SwpFrameChanged);
+    }
+
+    private void UpdateTopmostState(bool ctrlDown)
+    {
+        if (_source is null)
+            return;
+
+        var handle = new WindowInteropHelper(this).Handle;
+        SetWindowPos(handle, ctrlDown ? HwndTopmost : HwndNotopmost, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate);
     }
 
     private void DockToRightEdge()
