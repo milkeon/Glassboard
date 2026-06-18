@@ -55,7 +55,7 @@ Glassboard는 Windows 바탕화면 한쪽에 조용히 붙어 있는 오버레�
 
 ## 현재 버전
 
-- `v0.2.41`
+- `v0.2.43`
 - 단일 exe 배포 기준입니다.
 
 ## 빌드
@@ -70,6 +70,6 @@ Windows에서 `bin/Release/net8.0-windows/Glassboard.exe`를 실행합니다.
 
 ## 배포 참고
 
-- GitHub Release: https://github.com/milkeon/Glassboard/releases/tag/v0.2.41
-- Asset ZIP: https://github.com/milkeon/Glassboard/releases/download/v0.2.41/Glassboard-v0.2.41-win-x64.zip
-- Asset EXE: https://github.com/milkeon/Glassboard/releases/download/v0.2.41/Glassboard.exe
+- GitHub Release: https://github.com/milkeon/Glassboard/releases/tag/v0.2.43
+- Asset ZIP: https://github.com/milkeon/Glassboard/releases/download/v0.2.43/Glassboard-v0.2.43-win-x64.zip
+- Asset EXE: https://github.com/milkeon/Glassboard/releases/download/v0.2.43/Glassboard.exe

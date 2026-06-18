@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace Glassboard;
 
@@ -23,6 +24,7 @@ public partial class App : Application
             base.OnStartup(e);
             ShutdownMode = ShutdownMode.OnMainWindowClose;
 
+            EnsureAutoStart();
             LogStartup("Before MainWindow ctor");
             var window = new MainWindow();
             LogStartup("After MainWindow ctor");
@@ -64,6 +66,48 @@ public partial class App : Application
         }
         catch
         {
+        }
+    }
+
+    private static void EnsureAutoStart()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            LogStartup("AutoStart skipped (non-Windows)");
+            return;
+        }
+
+        try
+        {
+            var processPath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(processPath))
+            {
+                LogStartup("AutoStart skipped (process path unavailable)");
+                return;
+            }
+
+            using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+            if (key is null)
+            {
+                LogStartup("AutoStart registry key unavailable");
+                return;
+            }
+
+            var desiredValue = $"\"{processPath}\"";
+            var currentValue = key.GetValue("Glassboard") as string;
+            if (!string.Equals(currentValue, desiredValue, StringComparison.OrdinalIgnoreCase))
+            {
+                key.SetValue("Glassboard", desiredValue, RegistryValueKind.String);
+                LogStartup($"AutoStart registered: {desiredValue}");
+            }
+            else
+            {
+                LogStartup("AutoStart already registered");
+            }
+        }
+        catch (Exception exception)
+        {
+            LogStartup($"AutoStart registration failed: {exception.GetType().Name}: {exception.Message}");
         }
     }
 

@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace Glassboard;
 
@@ -45,6 +46,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private const int WdaNone = 0;
     private const int WdaMonitor = 1;
     private const int WdaExcludeFromCapture = 0x11;
+    private const double ExpandedMinHeight = 420;
+    private const double CollapsedWindowHeight = 88;
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -59,6 +62,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string? _selectedClipboardSignature;
     private ClipboardEntry? _selectedEntry;
     private bool _isSelectionExpanded;
+    private bool _isContentExpanded = true;
+    private double _expandedWindowHeight = 620;
 
     public ObservableCollection<ClipboardEntry> LatestImages { get; } = new();
     public ObservableCollection<ClipboardEntry> LatestTexts { get; } = new();
@@ -75,6 +80,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             _selectedEntry = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsSelectionOverlayVisible));
         }
     }
 
@@ -88,8 +94,28 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             _isSelectionExpanded = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(IsSelectionOverlayVisible));
         }
     }
+
+    public bool IsContentExpanded
+    {
+        get => _isContentExpanded;
+        private set
+        {
+            if (_isContentExpanded == value)
+                return;
+
+            _isContentExpanded = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AccordionToggleLabel));
+            OnPropertyChanged(nameof(IsSelectionOverlayVisible));
+        }
+    }
+
+    public string AccordionToggleLabel => IsContentExpanded ? "접기" : "펼치기";
+
+    public bool IsSelectionOverlayVisible => IsContentExpanded && IsSelectionExpanded;
 
     public double OverlayOpacity
     {
@@ -114,6 +140,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ImagesList.ItemsSource = LatestImages;
         TextsList.ItemsSource = LatestTexts;
         DataContext = this;
+        _expandedWindowHeight = Height;
+        MinHeight = ExpandedMinHeight;
 
         _inputTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -359,6 +387,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
+        if (IsContentExpanded && WindowState == WindowState.Normal && e.NewSize.Height >= ExpandedMinHeight)
+            _expandedWindowHeight = e.NewSize.Height;
     }
 
     private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -574,11 +604,33 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         if (e.ClickCount == 2)
         {
-            WindowState = WindowState == WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
+            ToggleAccordionState();
             return;
         }
 
         DragMove();
+    }
+
+    private void AccordionToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleAccordionState();
+        e.Handled = true;
+    }
+
+    private void ToggleAccordionState()
+    {
+        if (IsContentExpanded)
+        {
+            _expandedWindowHeight = Math.Max(ActualHeight, ExpandedMinHeight);
+            IsContentExpanded = false;
+            MinHeight = CollapsedWindowHeight;
+            Height = CollapsedWindowHeight;
+            return;
+        }
+
+        IsContentExpanded = true;
+        MinHeight = ExpandedMinHeight;
+        Height = Math.Max(_expandedWindowHeight, ExpandedMinHeight);
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
