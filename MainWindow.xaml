@@ -145,7 +145,7 @@
             </Grid.RowDefinitions>
 
             <Grid Grid.Row="0"
-                  Margin="12,12,12,8"
+                  Margin="12,10,12,2"
                   Background="Transparent"
                   IsHitTestVisible="{Binding IsInteractive}"
                   MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
@@ -174,7 +174,7 @@
                                    FontWeight="SemiBold"
                                    TextAlignment="Right"
                                    VerticalAlignment="Center" />
-                        <Slider Minimum="0.35"
+                        <Slider Minimum="0.2"
                                 Maximum="1"
                                 Value="{Binding OverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 Foreground="{StaticResource AccentBrush}"
@@ -193,7 +193,7 @@
                             BorderThickness="1"
                             Click="AccordionToggleButton_Click"
                             IsTabStop="False"
-                            FontSize="18">
+                            FontSize="16">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border x:Name="Root"
@@ -226,8 +226,8 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
-                    <Button Content="닫기"
-                            Padding="10,4"
+                    <Button Content="❎"
+                            Padding="8,3"
                             Background="Transparent"
                             Foreground="{StaticResource TextBrush}"
                             BorderBrush="#40FFFFFF"
