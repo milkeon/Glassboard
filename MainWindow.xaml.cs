@@ -126,7 +126,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         get => _overlayOpacity;
         set
         {
-            var clamped = Math.Clamp(value, 0.2, 1.0);
+            var clamped = Math.Clamp(value, 0.1, 1.0);
             if (Math.Abs(_overlayOpacity - clamped) < 0.001)
                 return;
 
@@ -515,7 +515,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         var width = Math.Max(1, element.ActualWidth);
         var ratio = Math.Clamp(x / width, 0.0, 1.0);
-        OverlayOpacity = 0.2 + (ratio * 0.8);
+        OverlayOpacity = 0.1 + (ratio * 0.9);
     }
 
     private void ApplyCaptureExclusion(IntPtr handle)

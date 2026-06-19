@@ -174,7 +174,7 @@
                                    FontWeight="SemiBold"
                                    TextAlignment="Right"
                                    VerticalAlignment="Center" />
-                        <Slider Minimum="0.2"
+                        <Slider Minimum="0.1"
                                 Maximum="1"
                                 Value="{Binding OverlayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 Foreground="{StaticResource AccentBrush}"
@@ -185,7 +185,9 @@
                                 Style="{StaticResource GlassOpacitySliderStyle}" />
                     </StackPanel>
                     <Button Content="{Binding AccordionToggleIcon}"
-                            Padding="9,4"
+                            Width="34"
+                            Height="34"
+                            Padding="0"
                             Margin="0,0,8,0"
                             Background="Transparent"
                             Foreground="{StaticResource TextBrush}"
@@ -193,7 +195,9 @@
                             BorderThickness="1"
                             Click="AccordionToggleButton_Click"
                             IsTabStop="False"
-                            FontSize="16">
+                            FontSize="17"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border x:Name="Root"
@@ -227,13 +231,18 @@
                         </Button.Template>
                     </Button>
                     <Button Content="❎"
-                            Padding="8,3"
+                            Width="34"
+                            Height="34"
+                            Padding="0"
                             Background="Transparent"
                             Foreground="{StaticResource TextBrush}"
                             BorderBrush="#40FFFFFF"
                             BorderThickness="1"
                             Click="CloseButton_Click"
-                            IsTabStop="False">
+                            IsTabStop="False"
+                            FontSize="17"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <Border x:Name="Root"
