@@ -20,7 +20,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 {
     private const int WmClipboardUpdate = 0x031D;
     private const int WmNcHitTest = 0x0084;
+    private const int WmHotKey = 0x0312;
     private const int VkControl = 0x11;
+    private const int VkSpace = 0x20;
+    private const int ModControl = 0x0002;
+    private const int HotkeyToggleAccordionId = 0x4547;
     private const int HtClient = 1;
     private const int HtCaption = 2;
     private const int HtLeft = 10;
@@ -108,12 +112,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             _isContentExpanded = value;
             OnPropertyChanged();
-            OnPropertyChanged(nameof(AccordionToggleLabel));
+            OnPropertyChanged(nameof(AccordionToggleIcon));
             OnPropertyChanged(nameof(IsSelectionOverlayVisible));
         }
     }
 
-    public string AccordionToggleLabel => IsContentExpanded ? "접기" : "펼치기";
+    public string AccordionToggleIcon => IsContentExpanded ? "🔽" : "🔼";
 
     public bool IsSelectionOverlayVisible => IsContentExpanded && IsSelectionExpanded;
 
@@ -159,6 +163,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _source?.AddHook(WndProc);
         AddClipboardFormatListener(handle);
         ApplyCaptureExclusion(handle);
+        RegisterGlobalHotkeys(handle);
 
         _inputTimer.Start();
         UpdateClickThroughState(IsCtrlDown());
@@ -186,6 +191,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (msg == WmClipboardUpdate)
         {
             RefreshClipboard();
+            handled = true;
+        }
+
+        if (msg == WmHotKey && wParam == new IntPtr(HotkeyToggleAccordionId))
+        {
+            ToggleAccordionState();
             handled = true;
         }
 
@@ -411,6 +422,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _source.RemoveHook(WndProc);
 
         var handle = new WindowInteropHelper(this).Handle;
+        UnregisterGlobalHotkeys(handle);
         RemoveClipboardFormatListener(handle);
     }
 
@@ -525,6 +537,33 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private bool RegisterGlobalHotkeys(IntPtr handle)
+    {
+        try
+        {
+            var registered = RegisterHotKey(handle, HotkeyToggleAccordionId, ModControl, VkSpace);
+            LogStartup($"RegisterHotKey(Ctrl+Space)={(registered ? "ok" : "failed")}");
+            return registered;
+        }
+        catch (Exception exception)
+        {
+            LogStartup($"RegisterHotKey(exception)={exception.GetType().Name}: {exception.Message}");
+            return false;
+        }
+    }
+
+    private void UnregisterGlobalHotkeys(IntPtr handle)
+    {
+        try
+        {
+            UnregisterHotKey(handle, HotkeyToggleAccordionId);
+        }
+        catch (Exception exception)
+        {
+            LogStartup($"UnregisterHotKey(exception)={exception.GetType().Name}: {exception.Message}");
+        }
+    }
+
     private static void LogStartup(string message)
     {
         try
@@ -561,7 +600,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
 
         var handle = new WindowInteropHelper(this).Handle;
-        SetWindowPos(handle, ctrlDown ? HwndTopmost : HwndNotopmost, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate);
+        SetWindowPos(handle, HwndTopmost, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate);
     }
 
     private void DockToRightEdge()
@@ -702,6 +741,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
