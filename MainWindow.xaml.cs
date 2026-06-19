@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -382,11 +384,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (entry.Kind == ClipboardEntryKind.Image)
         {
             if (entry.ImageSource is BitmapSource bitmapSource)
-                Clipboard.SetImage(bitmapSource);
+                TrySetClipboard(() => Clipboard.SetImage(bitmapSource));
             return;
         }
 
-        Clipboard.SetText(entry.FullText ?? string.Empty);
+        TrySetClipboard(() => Clipboard.SetText(entry.FullText ?? string.Empty));
+    }
+
+    private static void TrySetClipboard(Action clipboardAction)
+    {
+        const int attempts = 5;
+
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            try
+            {
+                clipboardAction();
+                return;
+            }
+            catch (ExternalException ex) when (unchecked((uint)ex.HResult) == 0x800401D0)
+            {
+                Debug.WriteLine($"Clipboard busy on attempt {attempt}/{attempts}: {ex.Message}");
+
+                if (attempt == attempts)
+                    return;
+
+                Thread.Sleep(25 * attempt);
+            }
+        }
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
