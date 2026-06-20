@@ -54,6 +54,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private const int WdaExcludeFromCapture = 0x11;
     private const double ExpandedMinHeight = 420;
     private const double CollapsedWindowHeight = 56;
+    private const int ClipboardHistoryLimit = 20;
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -281,13 +282,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (entry.Kind == ClipboardEntryKind.Image)
         {
             LatestImages.Insert(0, entry);
-            if (LatestImages.Count > 5)
+            if (LatestImages.Count > ClipboardHistoryLimit)
                 LatestImages.RemoveAt(LatestImages.Count - 1);
         }
         else
         {
             LatestTexts.Insert(0, entry);
-            if (LatestTexts.Count > 5)
+            if (LatestTexts.Count > ClipboardHistoryLimit)
                 LatestTexts.RemoveAt(LatestTexts.Count - 1);
         }
 
