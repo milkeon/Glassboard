@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -71,6 +72,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private bool _isSelectionExpanded;
     private bool _isContentExpanded = true;
     private double _expandedWindowHeight = 620;
+    private readonly string _layoutStatePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "Glassboard",
+        "layout-state.txt");
 
     public ObservableCollection<ClipboardEntry> LatestImages { get; } = new();
     public ObservableCollection<ClipboardEntry> LatestTexts { get; } = new();
@@ -147,7 +152,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ImagesList.ItemsSource = LatestImages;
         TextsList.ItemsSource = LatestTexts;
         DataContext = this;
-        _expandedWindowHeight = Height;
+        _expandedWindowHeight = LoadExpandedWindowHeight();
         MinHeight = ExpandedMinHeight;
 
         _inputTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -426,7 +431,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (IsContentExpanded && WindowState == WindowState.Normal && e.NewSize.Height >= ExpandedMinHeight)
+        {
             _expandedWindowHeight = e.NewSize.Height;
+            SaveExpandedWindowHeight(_expandedWindowHeight);
+        }
     }
 
     private void Window_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -451,6 +459,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var handle = new WindowInteropHelper(this).Handle;
         UnregisterGlobalHotkeys(handle);
         RemoveClipboardFormatListener(handle);
+        SaveExpandedWindowHeight(_expandedWindowHeight);
     }
 
     private int HitTestResize(IntPtr lParam)
@@ -688,6 +697,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (IsContentExpanded)
         {
             _expandedWindowHeight = Math.Max(ActualHeight, ExpandedMinHeight);
+            SaveExpandedWindowHeight(_expandedWindowHeight);
             IsContentExpanded = false;
             MinHeight = CollapsedWindowHeight;
             Height = CollapsedWindowHeight;
@@ -697,6 +707,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         IsContentExpanded = true;
         MinHeight = ExpandedMinHeight;
         Height = Math.Max(_expandedWindowHeight, ExpandedMinHeight);
+    }
+
+    private double LoadExpandedWindowHeight()
+    {
+        try
+        {
+            if (File.Exists(_layoutStatePath))
+            {
+                var raw = File.ReadAllText(_layoutStatePath).Trim();
+                if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+                    return Math.Max(parsed, ExpandedMinHeight);
+            }
+        }
+        catch
+        {
+        }
+
+        return Math.Max(620, ExpandedMinHeight);
+    }
+
+    private void SaveExpandedWindowHeight(double height)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(_layoutStatePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+                Directory.CreateDirectory(directory);
+
+            File.WriteAllText(_layoutStatePath, Math.Max(height, ExpandedMinHeight).ToString(CultureInfo.InvariantCulture));
+        }
+        catch
+        {
+        }
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
