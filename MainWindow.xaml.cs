@@ -139,7 +139,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    public bool IsInteractive => IsCtrlDown();
+    public bool IsInteractive => IsContentExpanded && IsCtrlDown();
 
     public MainWindow()
     {
@@ -169,15 +169,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         RegisterGlobalHotkeys(handle);
 
         _inputTimer.Start();
-        UpdateClickThroughState(IsCtrlDown());
-        UpdateTopmostState(IsCtrlDown());
+        UpdateClickThroughState(IsContentExpanded && IsCtrlDown());
+        UpdateTopmostState(IsContentExpanded && IsCtrlDown());
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == WmNcHitTest)
         {
-            if (!IsCtrlDown())
+            if (!IsContentExpanded || !IsCtrlDown())
             {
                 handled = true;
                 return new IntPtr(-1);
@@ -209,17 +209,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void InputTimer_Tick(object? sender, EventArgs e)
     {
         var ctrlDown = IsCtrlDown();
+        var interactive = IsContentExpanded && ctrlDown;
         OnPropertyChanged(nameof(IsInteractive));
-        UpdateClickThroughState(ctrlDown);
-        UpdateTopmostState(ctrlDown);
+        UpdateClickThroughState(interactive);
+        UpdateTopmostState(interactive);
 
-        if (ctrlDown)
+        if (interactive)
         {
             Activate();
             Focus();
         }
 
-        var target = ctrlDown ? CtrlOpacity : OverlayOpacity;
+        var target = interactive ? CtrlOpacity : OverlayOpacity;
         if (Math.Abs(Opacity - target) > 0.01)
             Opacity = target;
     }
