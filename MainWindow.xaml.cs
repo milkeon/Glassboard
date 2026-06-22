@@ -456,10 +456,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (_isInitialLayoutPending || _suppressExpandedHeightSave)
             return;
 
-        if (IsContentExpanded && WindowState == WindowState.Normal && e.NewSize.Height >= ExpandedMinHeight)
+        if (IsContentExpanded && WindowState == WindowState.Normal)
         {
-            _expandedWindowHeight = e.NewSize.Height;
-            SaveExpandedWindowHeight(_expandedWindowHeight);
+            var measuredHeight = GetBestExpandedWindowHeight();
+            if (measuredHeight >= ExpandedMinHeight)
+            {
+                _expandedWindowHeight = measuredHeight;
+                SaveExpandedWindowHeight(_expandedWindowHeight);
+            }
         }
     }
 
@@ -485,7 +489,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var handle = new WindowInteropHelper(this).Handle;
         UnregisterGlobalHotkeys(handle);
         RemoveClipboardFormatListener(handle);
-        SaveExpandedWindowHeight(_expandedWindowHeight);
+        SaveExpandedWindowHeight(GetBestExpandedWindowHeight());
     }
 
     private int HitTestResize(IntPtr lParam)
@@ -722,7 +726,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         if (IsContentExpanded)
         {
-            _expandedWindowHeight = Math.Max(ActualHeight, ExpandedMinHeight);
+            _expandedWindowHeight = GetBestExpandedWindowHeight();
             SaveExpandedWindowHeight(_expandedWindowHeight);
             IsContentExpanded = false;
             MinHeight = CollapsedWindowHeight;
@@ -737,9 +741,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var targetHeight = Math.Max(_expandedWindowHeight, ExpandedMinHeight);
         _suppressExpandedHeightSave = true;
         Height = targetHeight;
-        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => _suppressExpandedHeightSave = false));
-        _expandedWindowHeight = targetHeight;
-        SaveExpandedWindowHeight(_expandedWindowHeight);
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+        {
+            Height = targetHeight;
+            _expandedWindowHeight = GetBestExpandedWindowHeight();
+            SaveExpandedWindowHeight(_expandedWindowHeight);
+            _suppressExpandedHeightSave = false;
+        }));
     }
 
     private double LoadExpandedWindowHeight()
@@ -758,6 +766,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         return Math.Max(620, ExpandedMinHeight);
+    }
+
+    private double GetBestExpandedWindowHeight()
+    {
+        var candidates = new[]
+        {
+            Height,
+            ActualHeight,
+            RestoreBounds.Height,
+            _expandedWindowHeight
+        };
+
+        var best = candidates.Where(value => !double.IsNaN(value) && !double.IsInfinity(value)).Max();
+        return Math.Max(best, ExpandedMinHeight);
     }
 
     private void SaveExpandedWindowHeight(double height)
